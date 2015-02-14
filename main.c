@@ -19,14 +19,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "neuron.h"
+#include "network.h"
 
 int main()
 {
-    neuron_t neurons[4];
-    neurons[0].output = 1.f;
+    neural_network_t nn;
+    neural_network_init(&nn);
 
-    neuron_t* neuron = &neurons[3];
+    neuron_t* neuron = &nn.neurons[3];
 
     size_t n_inputs = 2;
     size_t n_synapses = 1 + n_inputs;
@@ -36,32 +36,36 @@ int main()
     for (size_t i = 0; i < n_synapses; i++)
         neuron->synapses[i].neighbour_index = i;
 
+    // train
     for (int i = 0; i < 100000; i++)
     {
         int a = rand() & 1;
         int b = rand() & 1;
         int output = a | b;
 
-        neurons[1].output = (float)a;
-        neurons[2].output = (float)b;
+        nn.neurons[1].output = (float)a;
+        nn.neurons[2].output = (float)b;
 
-        float result = neuron_propagate(neurons, 3);
-
-        float correction = result - output;
-        neuron->local_gradient = correction;
-        neuron_backpropagate(neurons, 3);
+        neural_network_propagate(&nn);
+        nn.neurons[3].local_gradient = nn.neurons[3].output - output;
+        neural_network_backpropagate(&nn);
     }
 
+    // test
     for (int a = 0; a <= 1; a++)
         for (int b = 0; b <= 1; b++)
         {
             int output = a | b;
-            neurons[1].output = (float)a;
-            neurons[2].output = (float)b;
-            float result = neuron_propagate(neurons, 3);
+            nn.neurons[1].output = (float)a;
+            nn.neurons[2].output = (float)b;
+
+            neural_network_propagate(&nn);
+
+            float result = nn.neurons[3].output;
             printf("%i %f\n", output, result);
         }
 
     free(neuron->synapses);
+    neural_network_exit(&nn);
     return 0;
 }
