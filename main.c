@@ -25,30 +25,28 @@ int main()
 {
     neural_network_t nn;
     neural_network_init(&nn, 2);
+    neural_network_add_layer(&nn, 10);
     neural_network_add_layer(&nn, 1);
 
     // train
     for (int i = 0; i < 100000; i++)
     {
-        int a = rand() & 1;
-        int b = rand() & 1;
-        int output = a | b;
+        unsigned char input[2] = {rand()&1, rand()&1};
+        neural_network_input_from_bytes(&nn, input);
 
-        nn.neurons[1].output = (float)a;
-        nn.neurons[2].output = (float)b;
-
+        char output = input[0] ^ input[1];
         float result = neural_network_propagate(&nn);
         neural_network_backpropagate(&nn, result - output);
     }
 
     // test
-    for (int a = 0; a <= 1; a++)
-        for (int b = 0; b <= 1; b++)
+    for (char a = 0; a <= 1; a++)
+        for (char b = 0; b <= 1; b++)
         {
-            int output = a | b;
-            nn.neurons[1].output = (float)a;
-            nn.neurons[2].output = (float)b;
+            unsigned char input[2] = {a, b};
+            neural_network_input_from_bytes(&nn, input);
 
+            char output = input[0] ^ input[1];
             float result = neural_network_propagate(&nn);
             printf("%i %f\n", output, result);
         }

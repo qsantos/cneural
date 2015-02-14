@@ -65,6 +65,12 @@ void neural_network_add_layer(neural_network_t* nn, size_t n_neurons)
     nn->layer_size = n_neurons;
 }
 
+void neural_network_input_from_bytes(neural_network_t* nn, unsigned char* input)
+{
+    for (size_t i = 1; i < 1 + nn->n_inputs; i++, input++)
+        nn->neurons[i].output = *input;
+}
+
 float neural_network_propagate(neural_network_t* nn)
 {
     for (size_t i = 1 + nn->n_inputs; i < nn->n_neurons; i++)
