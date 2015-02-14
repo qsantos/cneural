@@ -38,7 +38,7 @@ void neural_network_exit(neural_network_t* nn);
 
 void neural_network_add_layer(neural_network_t* nn, size_t n_neurons);
 
-void neural_network_propagate    (neural_network_t* nn);
-void neural_network_backpropagate(neural_network_t* nn);
+float neural_network_propagate    (neural_network_t* nn);
+void  neural_network_backpropagate(neural_network_t* nn, float gradient);
 
 #endif

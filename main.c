@@ -37,9 +37,8 @@ int main()
         nn.neurons[1].output = (float)a;
         nn.neurons[2].output = (float)b;
 
-        neural_network_propagate(&nn);
-        nn.neurons[3].local_gradient = nn.neurons[3].output - output;
-        neural_network_backpropagate(&nn);
+        float result = neural_network_propagate(&nn);
+        neural_network_backpropagate(&nn, result - output);
     }
 
     // test
@@ -50,9 +49,7 @@ int main()
             nn.neurons[1].output = (float)a;
             nn.neurons[2].output = (float)b;
 
-            neural_network_propagate(&nn);
-
-            float result = nn.neurons[3].output;
+            float result = neural_network_propagate(&nn);
             printf("%i %f\n", output, result);
         }
 
