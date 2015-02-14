@@ -38,9 +38,9 @@ float neuron_propagate(neuron_t* neuron)
 {
     // compute local field δ_i = sum(y_j w_ij)
     float local_field = 0;
-    for (size_t i = 0; i < 3; i++)
+    for (size_t j = 0; j < neuron->n_synapses; j++)
     {
-        synapse_t* s = &neuron->synapses[i];
+        synapse_t* s = &neuron->synapses[j];
         local_field += neurons[s->neighbour_index].output * s->weight;
     }
     neuron->local_field = local_field;
@@ -56,9 +56,9 @@ void neuron_backpropagate(neuron_t* neuron)
 {
     float local_gradient = neuron->local_gradient * sigmoid_prime(neuron->local_field);
 
-    for (size_t i = 0; i < 3; i++)
+    for (size_t j = 0; j < neuron->n_synapses; j++)
     {
-        synapse_t* s = &neuron->synapses[i];
+        synapse_t* s = &neuron->synapses[j];
         s->weight -= local_gradient * neurons[s->neighbour_index].output;
     }
 }
