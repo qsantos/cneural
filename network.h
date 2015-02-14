@@ -29,10 +29,14 @@ struct neural_network
     neuron_t* neurons;
 
     size_t n_inputs;
+
+    size_t layer_size;
 };
 
-void neural_network_init(neural_network_t* nn);
+void neural_network_init(neural_network_t* nn, size_t n_inputs);
 void neural_network_exit(neural_network_t* nn);
+
+void neural_network_add_layer(neural_network_t* nn, size_t n_neurons);
 
 void neural_network_propagate    (neural_network_t* nn);
 void neural_network_backpropagate(neural_network_t* nn);

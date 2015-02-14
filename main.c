@@ -24,17 +24,8 @@
 int main()
 {
     neural_network_t nn;
-    neural_network_init(&nn);
-
-    neuron_t* neuron = &nn.neurons[3];
-
-    size_t n_inputs = 2;
-    size_t n_synapses = 1 + n_inputs;
-    neuron->n_synapses = n_synapses;
-
-    neuron->synapses = calloc(n_synapses, sizeof(synapse_t));
-    for (size_t i = 0; i < n_synapses; i++)
-        neuron->synapses[i].neighbour_index = i;
+    neural_network_init(&nn, 2);
+    neural_network_add_layer(&nn, 1);
 
     // train
     for (int i = 0; i < 100000; i++)
@@ -65,7 +56,6 @@ int main()
             printf("%i %f\n", output, result);
         }
 
-    free(neuron->synapses);
     neural_network_exit(&nn);
     return 0;
 }

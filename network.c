@@ -20,9 +20,9 @@
 
 #include <stdlib.h>
 
-void neural_network_init(neural_network_t* nn)
+void neural_network_init(neural_network_t* nn, size_t n_inputs)
 {
-    size_t n_neurons = 4;
+    size_t n_neurons = 1 + n_inputs;
 
     nn->n_neurons = n_neurons;
     nn->neurons = calloc(n_neurons, sizeof(neuron_t));
@@ -30,12 +30,39 @@ void neural_network_init(neural_network_t* nn)
     // normal input, for neuron bias
     nn->neurons[0].output = 1.f;
 
-    nn->n_inputs = 2;
+    nn->n_inputs = n_inputs;
+    nn->layer_size = n_inputs;
 }
 
 void neural_network_exit(neural_network_t* nn)
 {
+    for (size_t i = 0; i < nn->n_neurons; i++)
+        free(nn->neurons[i].synapses);
     free(nn->neurons);
+}
+
+void neural_network_add_layer(neural_network_t* nn, size_t n_neurons)
+{
+    size_t last_neuron = nn->n_neurons;
+
+    nn->n_neurons += n_neurons;
+    nn->neurons = realloc(nn->neurons, nn->n_neurons * sizeof(neuron_t));
+
+    size_t layer_start = last_neuron - nn->layer_size;
+    for (size_t i = last_neuron; i < nn->n_neurons; i++)
+    {
+        neuron_t* neuron = &nn->neurons[i];
+
+        size_t n_synapses = 1 + nn->layer_size;
+        neuron->n_synapses = n_synapses;
+
+        neuron->synapses = calloc(n_synapses, sizeof(synapse_t));
+        neuron->synapses[0].neighbour_index = 0; // bias
+        for (size_t j = 0; j < nn->layer_size; j++)
+            neuron->synapses[1+j].neighbour_index = layer_start + j;
+    }
+
+    nn->layer_size = n_neurons;
 }
 
 void neural_network_propagate(neural_network_t* nn)
