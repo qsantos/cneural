@@ -32,10 +32,10 @@ struct neuron
     synapse_t* synapses;
 };
 
-neuron_t neurons[4];
-
-float neuron_propagate(neuron_t* neuron)
+float neuron_propagate(neuron_t* neurons, size_t i)
 {
+    neuron_t* neuron = &neurons[i];
+
     // compute local field, v_i = sum(y_j w_ji)
     float local_field = 0;
     for (size_t j = 0; j < neuron->n_synapses; j++)
@@ -52,8 +52,10 @@ float neuron_propagate(neuron_t* neuron)
     return output;
 }
 
-void neuron_backpropagate(neuron_t* neuron)
+void neuron_backpropagate(neuron_t* neurons, size_t i)
 {
+    neuron_t* neuron = &neurons[i];
+
     // finalize computation of local gradient, δ_i = ϕ'(v_i) × …
     float local_gradient = neuron->local_gradient * sigmoid_prime(neuron->local_field);
 
@@ -67,6 +69,7 @@ void neuron_backpropagate(neuron_t* neuron)
 
 int main()
 {
+    neuron_t neurons[4];
     neurons[0].output = 1.f;
 
     neuron_t* neuron = &neurons[3];
@@ -88,11 +91,11 @@ int main()
         neurons[1].output = (float)a;
         neurons[2].output = (float)b;
 
-        float result = neuron_propagate(neuron);
+        float result = neuron_propagate(neurons, 3);
 
         float correction = result - output;
         neuron->local_gradient = correction;
-        neuron_backpropagate(neuron);
+        neuron_backpropagate(neurons, 3);
     }
 
     for (int a = 0; a <= 1; a++)
@@ -101,7 +104,7 @@ int main()
             int output = a | b;
             neurons[1].output = (float)a;
             neurons[2].output = (float)b;
-            float result = neuron_propagate(neuron);
+            float result = neuron_propagate(neurons, 3);
             printf("%i %f\n", output, result);
         }
 
