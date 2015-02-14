@@ -18,72 +18,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
 
-float sigmoid(float x)
-{
-    return 1.f / (1.f + expf(-x));
-}
-
-float sigmoid_prime(float x)
-{
-    float s = sigmoid(x);
-    return (1 - s) * s;
-}
-
-typedef struct synapse synapse_t;
-typedef struct neuron neuron_t;
-
-struct synapse
-{
-    size_t neighbour_index;
-    float weight;
-};
-
-struct neuron
-{
-    float local_field;
-    float local_gradient;
-    float output;
-
-    size_t n_synapses;
-    synapse_t* synapses;
-};
-
-float neuron_propagate(neuron_t* neurons, size_t i)
-{
-    neuron_t* neuron = &neurons[i];
-
-    // compute local field, v_i = sum(y_j w_ji)
-    float local_field = 0;
-    for (size_t j = 0; j < neuron->n_synapses; j++)
-    {
-        synapse_t* s = &neuron->synapses[j];
-        local_field += neurons[s->neighbour_index].output * s->weight;
-    }
-    neuron->local_field = local_field;
-
-    // compute output, y_i
-    float output = sigmoid(local_field);
-    neuron->output = output;
-
-    return output;
-}
-
-void neuron_backpropagate(neuron_t* neurons, size_t i)
-{
-    neuron_t* neuron = &neurons[i];
-
-    // finalize computation of local gradient, δ_i = ϕ'(v_i) × …
-    float local_gradient = neuron->local_gradient * sigmoid_prime(neuron->local_field);
-
-    // update weights
-    for (size_t j = 0; j < neuron->n_synapses; j++)
-    {
-        synapse_t* s = &neuron->synapses[j];
-        s->weight -= local_gradient * neurons[s->neighbour_index].output;
-    }
-}
+#include "neuron.h"
 
 int main()
 {
