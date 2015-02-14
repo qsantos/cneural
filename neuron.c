@@ -31,7 +31,7 @@ static float sigmoid_prime(float x)
     return (1 - s) * s;
 }
 
-float neuron_propagate(neuron_t* neurons, size_t i)
+void neuron_propagate(neuron_t* neurons, size_t i)
 {
     neuron_t* neuron = &neurons[i];
 
@@ -49,7 +49,6 @@ float neuron_propagate(neuron_t* neurons, size_t i)
     neuron->output = output;
 
     neuron->local_gradient = 0;
-    return output;
 }
 
 void neuron_backpropagate(neuron_t* neurons, size_t i)

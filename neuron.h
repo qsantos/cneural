@@ -40,7 +40,7 @@ struct neuron
     synapse_t* synapses;
 };
 
-float neuron_propagate    (neuron_t* neurons, size_t i);
-void  neuron_backpropagate(neuron_t* neurons, size_t i);
+void neuron_propagate    (neuron_t* neurons, size_t i);
+void neuron_backpropagate(neuron_t* neurons, size_t i);
 
 #endif
