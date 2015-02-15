@@ -73,8 +73,8 @@ int main()
     // test
     mnist_t mnist;
     mnist_init(&mnist, "mnist/t10k-labels-idx1-ubyte", "mnist/t10k-images-idx3-ubyte");
-    size_t n_tests[N_OUTPUTS] = {0};
-    size_t n_successes[N_OUTPUTS] = {0};
+    size_t classifications[N_OUTPUTS][N_OUTPUTS] = {{0}};
+
     for (size_t i = 0; i < mnist.n_elements; i++)
     {
         // get case
@@ -90,36 +90,65 @@ int main()
         int label = 0;
         for (; expect[label] != 1.f; label++);
 
-        n_tests[label]++;
-
-        // check result
-        int ok = 1;
+        // get result
+        float best = 0;
+        int selected = 0;
         for (size_t i = 0; i < N_OUTPUTS; i++)
         {
-            if ((output[i] > 0.5f) != (expect[i] > 0.5f))
+            if (output[i] > best)
             {
-                ok = 0;
-                break;
+                best = output[i];
+                selected = i;
             }
         }
-        n_successes[label] += ok;
+
+        // log classification
+        classifications[label][selected]++;
     }
 
-    size_t total_successes = 0;
-    size_t total_tests = 0;
+    // table header
+    printf("    ");
+    for (size_t j = 0; j < N_OUTPUTS; j++)
+        printf("%4zu ", j);
+    printf(" total\n");
+    printf("\n");
+
     for (size_t i = 0; i < N_OUTPUTS; i++)
     {
-        size_t s = n_successes[i];
-        size_t t = n_tests[i];
-        printf("%zu: %4zu / %4zu → %5.2f%%\n", i, s, t, 100.f * s / (float)t);
-        total_successes += s;
-        total_tests += t;
+        size_t total = 0;
+        printf("%zu   ", i);
+        for (size_t j = 0; j < N_OUTPUTS; j++)
+        {
+            printf("%4zu ", classifications[i][j]);
+            total += classifications[i][j];
+        }
+        printf("  %4zu\n", total);
     }
 
-    size_t s = total_successes;
-    size_t t = total_tests;
     printf("\n");
-    printf("T: %4zu /%5zu → %5.2f%%\n", s, t, 100.f * s / (float)t);
+    printf("tot ");
+    for (size_t j = 0; j < N_OUTPUTS; j++)
+    {
+        size_t total = 0;
+        for (size_t i = 0; i < N_OUTPUTS; i++)
+            total += classifications[i][j];
+        printf("%4zu ", total);
+    }
+    printf("\n");
+
+    printf("\n");
+    printf("Caption: image with digit LINE was classified as a COLUMN digit CELL times\n");
+
+    printf("\n");
+    size_t correct = 0;
+    size_t total = 0;
+    for (size_t i = 0; i < N_OUTPUTS; i++)
+    {
+        for (size_t j = 0; j < N_OUTPUTS; j++)
+            total += classifications[i][j];
+        correct += classifications[i][i];
+    }
+    printf("%zu / %zu → %5.2f\n", correct, total, 100.f*correct/(float)total);
 
     mnist_exit(&mnist);
 
