@@ -18,12 +18,15 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "network.h"
 #include "mnist.h"
 
 int main()
 {
+    srand(time(NULL));
+
     mnist_t mnist;
     mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
 

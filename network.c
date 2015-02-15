@@ -59,7 +59,10 @@ void neural_network_add_layer(neural_network_t* nn, size_t n_neurons)
         neuron->synapses = calloc(n_synapses, sizeof(synapse_t));
         neuron->synapses[0].neighbour_index = 0; // bias
         for (size_t j = 0; j < nn->layer_size; j++)
+        {
             neuron->synapses[1+j].neighbour_index = layer_start + j;
+            neuron->synapses[1+j].weight = 2.f * (float)rand() / RAND_MAX - 1;
+        }
     }
 
     nn->layer_size = n_neurons;
