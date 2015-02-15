@@ -67,7 +67,7 @@ int main()
 
     // test
     mnist_t mnist;
-    mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
+    mnist_init(&mnist, "mnist/t10k-labels-idx1-ubyte", "mnist/t10k-images-idx3-ubyte");
     size_t n_tests = 0;
     size_t n_successes = 0;
     unsigned char image[mnist.n_pixels];
