@@ -23,14 +23,22 @@
 #include "network.h"
 #include "mnist.h"
 
+#define N_OUTPUTS (10)
+
 void import_case(mnist_t* mnist, float* input, float* expect)
 {
+    // get data
     unsigned char image[mnist->n_pixels];
     unsigned int label = mnist_next(mnist, image);
+
+    // set input
     for (size_t i = 0; i < mnist->n_pixels; i++)
         input[i] = image[i] / 256.f;
 
-    expect[0] = label == 0; // differentiate zeros
+    // set expected output
+    for (size_t i = 0; i < N_OUTPUTS; i++)
+        expect[i] = 0.f;
+    expect[label] = 1.f;
 }
 
 int main()
@@ -40,7 +48,7 @@ int main()
     neural_network_t nn;
     neural_network_init(&nn, 28*28);
     neural_network_add_layer(&nn, 300);
-    neural_network_add_layer(&nn, 1);
+    neural_network_add_layer(&nn, N_OUTPUTS);
 
     // train
     size_t n_iterations = 1;
@@ -52,7 +60,7 @@ int main()
         {
             // get case
             float input[mnist.n_pixels];
-            float expect[1];
+            float expect[N_OUTPUTS];
             import_case(&mnist, input, expect);
 
             // train
@@ -71,14 +79,24 @@ int main()
     {
         // get case
         float input[mnist.n_pixels];
-        float expect[1];
+        float expect[N_OUTPUTS];
         import_case(&mnist, input, expect);
 
         // test
-        float output[1];
+        float output[N_OUTPUTS];
         neural_network_compute(&nn, input, output);
-        if ((output[0] > 0.5f) == (expect[0] > 0.5f))
-            n_successes++;
+
+        // check result
+        int ok = 1;
+        for (size_t i = 0; i < N_OUTPUTS; i++)
+        {
+            if ((output[i] > 0.5f) != (expect[i] > 0.5f))
+            {
+                ok = 0;
+                break;
+            }
+        }
+        n_successes += ok;
 
         n_tests++;
     }
