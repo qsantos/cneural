@@ -41,6 +41,6 @@ struct neuron
 };
 
 void neuron_propagate    (neuron_t* neurons, size_t i);
-void neuron_backpropagate(neuron_t* neurons, size_t i);
+void neuron_backpropagate(neuron_t* neurons, size_t i, float learning_rate);
 
 #endif

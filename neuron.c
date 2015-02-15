@@ -51,7 +51,7 @@ void neuron_propagate(neuron_t* neurons, size_t i)
     neuron->local_gradient = 0;
 }
 
-void neuron_backpropagate(neuron_t* neurons, size_t i)
+void neuron_backpropagate(neuron_t* neurons, size_t i, float learning_rate)
 {
     neuron_t* neuron = &neurons[i];
 
@@ -62,7 +62,7 @@ void neuron_backpropagate(neuron_t* neurons, size_t i)
     for (size_t j = 0; j < neuron->n_synapses; j++)
     {
         synapse_t* s = &neuron->synapses[j];
-        s->weight -= local_gradient * neurons[s->neighbour_index].output;
+        s->weight -= learning_rate * local_gradient * neurons[s->neighbour_index].output;
     }
 
     // accumulate local gradient, δ_i = … × ∑ δ_j w_ji

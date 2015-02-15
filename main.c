@@ -61,6 +61,7 @@ int main()
             if (++subjects >= n_subjects)
                 break;
         }
+        nn.learning_rate -= 1.f / n_iterations;
         mnist_exit(&mnist);
     }
 

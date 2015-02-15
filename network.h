@@ -29,6 +29,7 @@ struct neural_network
     neuron_t* neurons;
 
     size_t n_inputs;
+    float learning_rate;
 
     size_t layer_size;
 };

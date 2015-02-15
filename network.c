@@ -31,6 +31,7 @@ void neural_network_init(neural_network_t* nn, size_t n_inputs)
     nn->neurons[0].output = 1.f;
 
     nn->n_inputs = n_inputs;
+    nn->learning_rate = 1.f;
     nn->layer_size = n_inputs;
 }
 
@@ -85,5 +86,5 @@ void neural_network_backpropagate(neural_network_t* nn, float gradient)
 {
     nn->neurons[nn->n_neurons-1].local_gradient = gradient;
     for (size_t i = nn->n_neurons; i-- > 1 + nn->n_inputs; )
-        neuron_backpropagate(nn->neurons, i);
+        neuron_backpropagate(nn->neurons, i, nn->learning_rate);
 }
