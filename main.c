@@ -23,6 +23,12 @@
 #include "network.h"
 #include "mnist.h"
 
+void bytes2floats(size_t n, unsigned char* b, float* f)
+{
+    for (size_t i = 0; i < n; i++)
+        f[i] = b[i] / 256.f;
+}
+
 int main()
 {
     srand(time(NULL));
@@ -39,14 +45,18 @@ int main()
         mnist_t mnist;
         mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
         unsigned char image[mnist.n_pixels];
+        float input[mnist.n_pixels];
         for (size_t i = 0; i < mnist.n_elements; i++)
         {
+            // get image
             unsigned int label = mnist_next(&mnist, image);
+            bytes2floats(mnist.n_pixels, image, input);
 
-            // try to differentiate zeros
+            // differentiate zeros
             float output = label == 0;
 
-            neural_network_input_from_bytes(&nn, image);
+            // train
+            neural_network_input(&nn, input);
             float result = neural_network_propagate(&nn);
             neural_network_backpropagate(&nn, result - output);
         }
@@ -60,13 +70,18 @@ int main()
     size_t n_tests = 0;
     size_t n_successes = 0;
     unsigned char image[mnist.n_pixels];
+    float input[mnist.n_pixels];
     for (size_t i = 0; i < mnist.n_elements; i++)
     {
+        // get image
         unsigned int label = mnist_next(&mnist, image);
+        bytes2floats(mnist.n_pixels, image, input);
 
+        // differentiate zeros
         float output = label == 0;
 
-        neural_network_input_from_bytes(&nn, image);
+        // test
+        neural_network_input(&nn, input);
         float result = neural_network_propagate(&nn);
 
         if ((result > 0.5f) == (output > 0.5f))
