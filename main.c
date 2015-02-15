@@ -43,14 +43,8 @@ int main()
         {
             unsigned int label = mnist_next(&mnist, image);
 
-            // try to differentiate zeros from fives
-            float output;
-            if (label == 0)
-                output = 1.f;
-            else if (label == 5)
-                output = 0.f;
-            else
-                continue;
+            // try to differentiate zeros
+            float output = label == 0;
 
             neural_network_input_from_bytes(&nn, image);
             float result = neural_network_propagate(&nn);
@@ -70,13 +64,7 @@ int main()
     {
         unsigned int label = mnist_next(&mnist, image);
 
-        float output;
-        if (label == 0)
-            output = 1.f;
-        else if (label == 5)
-            output = 0.f;
-        else
-            continue;
+        float output = label == 0;
 
         neural_network_input_from_bytes(&nn, image);
         float result = neural_network_propagate(&nn);
