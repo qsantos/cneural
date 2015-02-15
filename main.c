@@ -47,7 +47,6 @@ int main()
 
     neural_network_t nn;
     neural_network_init(&nn, 28*28);
-    neural_network_add_layer(&nn, 300);
     neural_network_add_layer(&nn, N_OUTPUTS);
 
     // train
