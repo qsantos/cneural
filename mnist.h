@@ -19,7 +19,25 @@
 #ifndef MNIST_H
 #define MNIST_H
 
-void open_labels(const char* filename);
-void open_images(const char* filename);
+#include <stdio.h>
+
+typedef struct mnist mnist_t;
+
+struct mnist
+{
+    FILE* labels;
+    FILE* images;
+
+    size_t n_elements;
+    size_t n_pixels;
+};
+
+void open_labels(mnist_t* mnist, const char* filename);
+void open_images(mnist_t* mnist, const char* filename);
+
+void mnist_init(mnist_t* mnist, const char* file_labels, const char* file_images);
+void mnist_exit(mnist_t* mnist);
+
+unsigned int mnist_next(mnist_t* mnist, unsigned char* image);
 
 #endif

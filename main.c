@@ -24,8 +24,22 @@
 
 int main()
 {
-    open_labels("mnist/train-labels-idx1-ubyte");
-    open_images("mnist/train-images-idx3-ubyte");
+    mnist_t mnist;
+    mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
+
+    unsigned char image[mnist.n_pixels];
+    unsigned int label = mnist_next(&mnist, image);
+    printf("This is a %u:\n", label);
+    for (int i = 0; i < 28; i++)
+    {
+        for (int j = 0; j < 28; j++)
+        {
+            printf("%3u", image[i*28 + j]);
+        }
+        printf("\n");
+    }
+
+    mnist_exit(&mnist);
     return 0;
 
     neural_network_t nn;

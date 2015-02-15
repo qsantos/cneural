@@ -19,7 +19,6 @@
 #include "mnist.h"
 
 #include <stdlib.h>
-#include <stdio.h>
 
 #define CHECK(COND, ...) do { \
         if (!(COND)) { \
@@ -46,50 +45,41 @@ static unsigned int read_word(FILE* f)
     ;
 }
 
-void open_labels(const char* filename)
+void mnist_init(mnist_t* mnist, const char* file_labels, const char* file_images)
 {
-    FILE* f = fopen(filename, "r");
-    CHECK(f != NULL, "Could not open file %s\n", filename);
+    // open file with label
+    mnist->labels = fopen(file_labels, "r");
+    CHECK(mnist->labels != NULL, "Could not open file '%s'\n", file_labels);
 
-    unsigned int magicword = read_word(f);
-    CHECK(magicword == 2049, "Invalid magic word %u\n", magicword);
+    // open file with images
+    mnist->images = fopen(file_images, "r");
+    CHECK(mnist->images != NULL, "Could not open file '%s'\n", file_images);
 
-    unsigned int n_labels = read_word(f);
-    printf("Found %u labels\n", n_labels);
+    // read headers
+    unsigned int magicword1 = read_word(mnist->labels);
+    CHECK(magicword1 == 2049, "Invalid magic word %u\n", magicword1);
+    unsigned int n_labels = read_word(mnist->labels);
 
-    unsigned int label = read_byte(f);
-    printf("First label is %u\n", label);
+    unsigned int magicword2 = read_word(mnist->images);
+    CHECK(magicword2 == 2051, "Invalid magic word %u\n", magicword2);
+    unsigned int n_images = read_word(mnist->images);
+    unsigned int n_rows = read_word(mnist->images);
+    unsigned int n_cols = read_word(mnist->images);
 
-    fclose(f);
+    // save file structure information
+    CHECK(n_labels == n_images, "Numbers of labels (%u) and images (%u) mismatch\n", n_labels, n_images);
+    mnist->n_elements = n_labels;
+    mnist->n_pixels = n_rows * n_cols;
 }
 
-void open_images(const char* filename)
+void mnist_exit(mnist_t* mnist)
 {
-    FILE* f = fopen(filename, "r");
-    CHECK(f != NULL, "Could not open file %s\n", filename);
+    fclose(mnist->images);
+    fclose(mnist->labels);
+}
 
-    unsigned int magicword = read_word(f);
-    CHECK(magicword == 2051, "Invalid magic word %u\n", magicword);
-
-    unsigned int n_images = read_word(f);
-    printf("Found %u images\n", n_images);
-
-    unsigned int n_rows = read_word(f);
-    unsigned int n_cols = read_word(f);
-    printf("Dimensions are %u×%u\n", n_rows, n_cols);
-
-    unsigned char image[n_rows * n_cols];
-    fread(image, n_rows*n_cols, 1, f);
-
-    printf("First image is:\n");
-    for (unsigned int i = 0; i < n_rows; i++)
-    {
-        for (unsigned int j = 0; j < n_cols; j++)
-        {
-            printf("%3u", image[i*n_cols + j]);
-        }
-        printf("\n");
-    }
-
-    fclose(f);
+unsigned int mnist_next(mnist_t* mnist, unsigned char* image)
+{
+    fread(image, 1, mnist->n_pixels, mnist->images);
+    return read_byte(mnist->labels);
 }
