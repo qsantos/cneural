@@ -23,10 +23,14 @@
 #include "network.h"
 #include "mnist.h"
 
-void bytes2floats(size_t n, unsigned char* b, float* f)
+float import_case(mnist_t* mnist, float* input)
 {
-    for (size_t i = 0; i < n; i++)
-        f[i] = b[i] / 256.f;
+    unsigned char image[mnist->n_pixels];
+    unsigned int label = mnist_next(mnist, image);
+    for (size_t i = 0; i < mnist->n_pixels; i++)
+        input[i] = image[i] / 256.f;
+
+    return label == 0; // differentiate zeros
 }
 
 int main()
@@ -44,21 +48,16 @@ int main()
     {
         mnist_t mnist;
         mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
-        unsigned char image[mnist.n_pixels];
-        float input[mnist.n_pixels];
         for (size_t i = 0; i < mnist.n_elements; i++)
         {
-            // get image
-            unsigned int label = mnist_next(&mnist, image);
-            bytes2floats(mnist.n_pixels, image, input);
-
-            // differentiate zeros
-            float output = label == 0;
+            // get case
+            float input[mnist.n_pixels];
+            float expect = import_case(&mnist, input);
 
             // train
             neural_network_input(&nn, input);
-            float result = neural_network_propagate(&nn);
-            neural_network_backpropagate(&nn, result - output);
+            float output = neural_network_propagate(&nn);
+            neural_network_backpropagate(&nn, output - expect);
         }
         nn.learning_rate -= 1.f / n_iterations;
         mnist_exit(&mnist);
@@ -69,22 +68,16 @@ int main()
     mnist_init(&mnist, "mnist/t10k-labels-idx1-ubyte", "mnist/t10k-images-idx3-ubyte");
     size_t n_tests = 0;
     size_t n_successes = 0;
-    unsigned char image[mnist.n_pixels];
-    float input[mnist.n_pixels];
     for (size_t i = 0; i < mnist.n_elements; i++)
     {
-        // get image
-        unsigned int label = mnist_next(&mnist, image);
-        bytes2floats(mnist.n_pixels, image, input);
-
-        // differentiate zeros
-        float output = label == 0;
+        // get case
+        float input[mnist.n_pixels];
+        float expect = import_case(&mnist, input);
 
         // test
         neural_network_input(&nn, input);
-        float result = neural_network_propagate(&nn);
-
-        if ((result > 0.5f) == (output > 0.5f))
+        float output = neural_network_propagate(&nn);
+        if ((output > 0.5f) == (expect > 0.5f))
             n_successes++;
 
         n_tests++;
