@@ -5,7 +5,7 @@ TARGETS = neural
 
 all: $(TARGETS)
 
-neural: main.o network.o neuron.o
+neural: main.o mnist.o network.o neuron.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c

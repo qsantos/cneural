@@ -20,9 +20,14 @@
 #include <stdio.h>
 
 #include "network.h"
+#include "mnist.h"
 
 int main()
 {
+    open_labels("mnist/train-labels-idx1-ubyte");
+    open_images("mnist/train-images-idx3-ubyte");
+    return 0;
+
     neural_network_t nn;
     neural_network_init(&nn, 2);
     neural_network_add_layer(&nn, 10);
