@@ -27,51 +27,72 @@ int main()
 {
     srand(time(NULL));
 
-    mnist_t mnist;
-    mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
-
-    unsigned char image[mnist.n_pixels];
-    unsigned int label = mnist_next(&mnist, image);
-    printf("This is a %u:\n", label);
-    for (int i = 0; i < 28; i++)
-    {
-        for (int j = 0; j < 28; j++)
-        {
-            printf("%3u", image[i*28 + j]);
-        }
-        printf("\n");
-    }
-
-    mnist_exit(&mnist);
-    return 0;
-
     neural_network_t nn;
-    neural_network_init(&nn, 2);
-    neural_network_add_layer(&nn, 10);
+    neural_network_init(&nn, 28*28);
+    neural_network_add_layer(&nn, 100);
     neural_network_add_layer(&nn, 1);
 
     // train
-    for (int i = 0; i < 100000; i++)
+    size_t n_subjects = 300;
+    size_t n_iterations = 20;
+    for (size_t k = 0; k < n_iterations; k++)
     {
-        unsigned char input[2] = {rand()&1, rand()&1};
-        neural_network_input_from_bytes(&nn, input);
+        mnist_t mnist;
+        mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
+        unsigned char image[mnist.n_pixels];
+        size_t subjects = 0;
+        for (size_t i = 0; i < mnist.n_elements; i++)
+        {
+            unsigned int label = mnist_next(&mnist, image);
 
-        char output = input[0] ^ input[1];
-        float result = neural_network_propagate(&nn);
-        neural_network_backpropagate(&nn, result - output);
+            // try to differentiate zeros from fives
+            float output;
+            if (label == 0)
+                output = 1.f;
+            else if (label == 5)
+                output = 0.f;
+            else
+                continue;
+
+            neural_network_input_from_bytes(&nn, image);
+            float result = neural_network_propagate(&nn);
+            neural_network_backpropagate(&nn, result - output);
+
+            if (++subjects >= n_subjects)
+                break;
+        }
+        mnist_exit(&mnist);
     }
 
     // test
-    for (char a = 0; a <= 1; a++)
-        for (char b = 0; b <= 1; b++)
-        {
-            unsigned char input[2] = {a, b};
-            neural_network_input_from_bytes(&nn, input);
+    mnist_t mnist;
+    mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
+    size_t n_tests = 0;
+    size_t n_successes = 0;
+    unsigned char image[mnist.n_pixels];
+    for (size_t i = 0; i < mnist.n_elements; i++)
+    {
+        unsigned int label = mnist_next(&mnist, image);
 
-            char output = input[0] ^ input[1];
-            float result = neural_network_propagate(&nn);
-            printf("%i %f\n", output, result);
-        }
+        float output;
+        if (label == 0)
+            output = 1.f;
+        else if (label == 5)
+            output = 0.f;
+        else
+            continue;
+
+        neural_network_input_from_bytes(&nn, image);
+        float result = neural_network_propagate(&nn);
+
+        if ((result > 0.5f) == (output > 0.5f))
+            n_successes++;
+
+        if (++n_tests >= n_subjects)
+            break;
+    }
+    printf("%zu / %zu\n", n_successes, n_tests);
+    mnist_exit(&mnist);
 
     neural_network_exit(&nn);
     return 0;
