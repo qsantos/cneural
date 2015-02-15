@@ -69,7 +69,7 @@ void neural_network_add_layer(neural_network_t* nn, size_t n_neurons)
     nn->layer_size = n_neurons;
 }
 
-float neural_network_compute(neural_network_t* nn, float* input)
+void neural_network_compute(neural_network_t* nn, float* input, float* output)
 {
     // set inputs
     for (size_t i = 1; i < 1 + nn->n_inputs; i++, input++)
@@ -80,16 +80,17 @@ float neural_network_compute(neural_network_t* nn, float* input)
         neuron_propagate(nn->neurons, i);
 
     // get output
-    return nn->neurons[nn->n_neurons-1].output;
+    output[0] = nn->neurons[nn->n_neurons-1].output;
 }
 
-void neural_network_train(neural_network_t* nn, float* input, float expect)
+void neural_network_train(neural_network_t* nn, float* input, float* expect)
 {
     // execute neural network
-    float output = neural_network_compute(nn, input);
+    float output[1];
+    neural_network_compute(nn, input, output);
 
     // initialize gradient
-    nn->neurons[nn->n_neurons-1].local_gradient = output - expect;
+    nn->neurons[nn->n_neurons-1].local_gradient = output[0] - expect[0];
 
     // backpropagate gradient
     for (size_t i = nn->n_neurons; i-- > 1 + nn->n_inputs; )

@@ -39,7 +39,7 @@ void neural_network_exit(neural_network_t* nn);
 
 void neural_network_add_layer(neural_network_t* nn, size_t n_neurons);
 
-float neural_network_compute(neural_network_t* nn, float* input);
-void  neural_network_train  (neural_network_t* nn, float* input, float expect);
+void neural_network_compute(neural_network_t* nn, float* input, float* output);
+void neural_network_train  (neural_network_t* nn, float* input, float* expect);
 
 #endif

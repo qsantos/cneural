@@ -23,14 +23,14 @@
 #include "network.h"
 #include "mnist.h"
 
-float import_case(mnist_t* mnist, float* input)
+void import_case(mnist_t* mnist, float* input, float* expect)
 {
     unsigned char image[mnist->n_pixels];
     unsigned int label = mnist_next(mnist, image);
     for (size_t i = 0; i < mnist->n_pixels; i++)
         input[i] = image[i] / 256.f;
 
-    return label == 0; // differentiate zeros
+    expect[0] = label == 0; // differentiate zeros
 }
 
 int main()
@@ -52,7 +52,8 @@ int main()
         {
             // get case
             float input[mnist.n_pixels];
-            float expect = import_case(&mnist, input);
+            float expect[1];
+            import_case(&mnist, input, expect);
 
             // train
             neural_network_train(&nn, input, expect);
@@ -70,11 +71,13 @@ int main()
     {
         // get case
         float input[mnist.n_pixels];
-        float expect = import_case(&mnist, input);
+        float expect[1];
+        import_case(&mnist, input, expect);
 
         // test
-        float output = neural_network_compute(&nn, input);
-        if ((output > 0.5f) == (expect > 0.5f))
+        float output[1];
+        neural_network_compute(&nn, input, output);
+        if ((output[0] > 0.5f) == (expect[0] > 0.5f))
             n_successes++;
 
         n_tests++;
