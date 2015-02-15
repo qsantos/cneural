@@ -29,18 +29,16 @@ int main()
 
     neural_network_t nn;
     neural_network_init(&nn, 28*28);
-    neural_network_add_layer(&nn, 100);
+    neural_network_add_layer(&nn, 300);
     neural_network_add_layer(&nn, 1);
 
     // train
-    size_t n_subjects = 300;
-    size_t n_iterations = 20;
+    size_t n_iterations = 1;
     for (size_t k = 0; k < n_iterations; k++)
     {
         mnist_t mnist;
         mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
         unsigned char image[mnist.n_pixels];
-        size_t subjects = 0;
         for (size_t i = 0; i < mnist.n_elements; i++)
         {
             unsigned int label = mnist_next(&mnist, image);
@@ -57,9 +55,6 @@ int main()
             neural_network_input_from_bytes(&nn, image);
             float result = neural_network_propagate(&nn);
             neural_network_backpropagate(&nn, result - output);
-
-            if (++subjects >= n_subjects)
-                break;
         }
         nn.learning_rate -= 1.f / n_iterations;
         mnist_exit(&mnist);
@@ -89,8 +84,7 @@ int main()
         if ((result > 0.5f) == (output > 0.5f))
             n_successes++;
 
-        if (++n_tests >= n_subjects)
-            break;
+        n_tests++;
     }
     printf("%zu / %zu\n", n_successes, n_tests);
     mnist_exit(&mnist);
