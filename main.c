@@ -55,9 +55,7 @@ int main()
             float expect = import_case(&mnist, input);
 
             // train
-            neural_network_input(&nn, input);
-            float output = neural_network_propagate(&nn);
-            neural_network_backpropagate(&nn, output - expect);
+            neural_network_train(&nn, input, expect);
         }
         nn.learning_rate -= 1.f / n_iterations;
         mnist_exit(&mnist);
@@ -75,8 +73,7 @@ int main()
         float expect = import_case(&mnist, input);
 
         // test
-        neural_network_input(&nn, input);
-        float output = neural_network_propagate(&nn);
+        float output = neural_network_compute(&nn, input);
         if ((output > 0.5f) == (expect > 0.5f))
             n_successes++;
 
