@@ -73,8 +73,8 @@ int main()
     // test
     mnist_t mnist;
     mnist_init(&mnist, "mnist/t10k-labels-idx1-ubyte", "mnist/t10k-images-idx3-ubyte");
-    size_t n_tests = 0;
-    size_t n_successes = 0;
+    size_t n_tests[N_OUTPUTS] = {0};
+    size_t n_successes[N_OUTPUTS] = {0};
     for (size_t i = 0; i < mnist.n_elements; i++)
     {
         // get case
@@ -86,6 +86,12 @@ int main()
         float output[N_OUTPUTS];
         neural_network_compute(&nn, input, output);
 
+        // retrieve original label
+        int label = 0;
+        for (; expect[label] != 1.f; label++);
+
+        n_tests[label]++;
+
         // check result
         int ok = 1;
         for (size_t i = 0; i < N_OUTPUTS; i++)
@@ -96,11 +102,25 @@ int main()
                 break;
             }
         }
-        n_successes += ok;
-
-        n_tests++;
+        n_successes[label] += ok;
     }
-    printf("%zu / %zu\n", n_successes, n_tests);
+
+    size_t total_successes = 0;
+    size_t total_tests = 0;
+    for (size_t i = 0; i < N_OUTPUTS; i++)
+    {
+        size_t s = n_successes[i];
+        size_t t = n_tests[i];
+        printf("%zu: %4zu / %4zu → %5.2f%%\n", i, s, t, 100.f * s / (float)t);
+        total_successes += s;
+        total_tests += t;
+    }
+
+    size_t s = total_successes;
+    size_t t = total_tests;
+    printf("\n");
+    printf("T: %4zu /%5zu → %5.2f%%\n", s, t, 100.f * s / (float)t);
+
     mnist_exit(&mnist);
 
     neural_network_exit(&nn);
