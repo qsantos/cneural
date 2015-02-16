@@ -47,10 +47,11 @@ int main()
 
     neural_network_t nn;
     neural_network_init(&nn, 28*28);
+    neural_network_add_layer(&nn, 300);
     neural_network_add_layer(&nn, N_OUTPUTS);
 
     // train
-    size_t n_iterations = 1;
+    size_t n_iterations = 20;
     for (size_t k = 0; k < n_iterations; k++)
     {
         mnist_t mnist;
