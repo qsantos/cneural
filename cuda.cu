@@ -8,9 +8,13 @@ extern "C"
 }
 
 #define n_inputs (28*28)
+#define n_hidden (300)
 #define n_outputs (10)
 
-__shared__ float weights[n_outputs][n_inputs+1];
+__device__ float weights0[n_hidden] [n_inputs+1];
+__shared__ float weights1[n_outputs][n_hidden+1];
+__shared__ float local_fields[n_hidden];
+__shared__ float intermediates[n_hidden];
 
 __device__ float sigmoid(float x)
 {
@@ -27,13 +31,28 @@ __device__ void compute(float* inputs, float* outputs)
 {
     const int i = threadIdx.x;
 
-    // compute local field, v_i = sum(y_j w_ji)
-    float local_field = weights[i][n_inputs];
-    for (size_t j = 0; j < n_inputs; j++)
-        local_field += inputs[j] * weights[i][j];
+    if (i < n_hidden)
+    {
+        // compute local field, v_i = sum(y_j w_ji)
+        float local_field = weights0[i][n_inputs];
+        for (size_t j = 0; j < n_inputs; j++)
+            local_field += inputs[j] * weights0[i][j];
+        local_fields[i] = local_field;
 
-    // compute outputs, y_i = ϕ(v_i)
-    outputs[i] = sigmoid(local_field);
+        // compute outputs, y_i = ϕ(v_i)
+        intermediates[i] = sigmoid(local_field);
+    }
+
+    if (i < n_outputs)
+    {
+        // compute local field, v_i = sum(y_j w_ji)
+        float local_field = weights1[i][n_hidden];
+        for (size_t j = 0; j < n_hidden; j++)
+            local_field += intermediates[j] * weights1[i][j];
+
+        // compute outputs, y_i = ϕ(v_i)
+        outputs[i] = sigmoid(local_field);
+    }
 }
 
 __device__ void train(float* inputs, float* expect)
@@ -42,12 +61,32 @@ __device__ void train(float* inputs, float* expect)
 
     __shared__ float outputs[n_outputs];
     compute(inputs, outputs);
-    float local_gradient = outputs[i] - expect[i];
 
-    // update weights
-    weights[i][n_inputs] -= local_gradient;
-    for (size_t j = 0; j < n_inputs; j++)
-        weights[i][j] -= local_gradient * inputs[j];
+    if (i < n_outputs)
+    {
+        // update weights
+        float local_gradient = outputs[i] - expect[i];
+        weights1[i][n_hidden] -= local_gradient;
+        for (size_t j = 0; j < n_hidden; j++)
+            weights1[i][j] -= local_gradient * intermediates[j];
+    }
+
+    if (i < n_hidden)
+    {
+        // compute local gradient, δ_i = ϕ'(v_i) × ∑ δ_j w_ji
+        float local_gradient = 0.f;
+        for (size_t j = 0; j < n_outputs; j++)
+        {
+            float local_gradient_j = outputs[j] - expect[j];
+            local_gradient += weights1[j][i] * local_gradient_j;
+        }
+        local_gradient *= sigmoid_prime(local_fields[i]);
+
+        // update weights
+        weights0[i][n_inputs] -= local_gradient;
+        for (size_t j = 0; j < n_inputs; j++)
+            weights0[i][j] -= local_gradient * inputs[j];
+    }
 }
 
 __global__ void init(int seed)
@@ -55,8 +94,16 @@ __global__ void init(int seed)
     const int i = threadIdx.x;
     curandState_t state;
     curand_init(seed, i, 0, &state);
-    for (size_t j = 0; j < n_inputs; j++)
-        weights[i][j] = 2.f * curand_uniform(&state) - 1.f;
+    if (i < n_hidden)
+    {
+        for (size_t j = 0; j < n_inputs; j++)
+            weights0[i][j] = 2.f * curand_uniform(&state) - 1.f;
+    }
+    if (i < n_outputs)
+    {
+        for (size_t j = 0; j < n_hidden; j++)
+            weights1[i][j] = 2.f * curand_uniform(&state) - 1.f;
+    }
 }
 
 __global__ void do_compute(float* inputs, float* outputs)
@@ -95,7 +142,7 @@ int main()
     float* dexpect; cudaMalloc((void**)&dexpect, n_outputs*sizeof(float));
     float* doutput; cudaMalloc((void**)&doutput, n_outputs*sizeof(float));
 
-    size_t n_nodes = n_outputs;
+    size_t n_nodes = max(n_outputs, n_hidden);
     init<<<1, n_nodes>>>(time(NULL));
 
     printf("training\n");
