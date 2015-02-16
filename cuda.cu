@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <time.h>
+#include <curand_kernel.h>
 
 extern "C"
 {
@@ -48,6 +50,15 @@ __device__ void train(float* inputs, float* expect)
         weights[i][j] -= local_gradient * inputs[j];
 }
 
+__global__ void init(int seed)
+{
+    const int i = threadIdx.x;
+    curandState_t state;
+    curand_init(seed, i, 0, &state);
+    for (size_t j = 0; j < n_inputs; j++)
+        weights[i][j] = 2.f * curand_uniform(&state) - 1.f;
+}
+
 __global__ void do_compute(float* inputs, float* outputs)
 {
     compute(inputs, outputs);
@@ -84,6 +95,9 @@ int main()
     float* dexpect; cudaMalloc((void**)&dexpect, n_outputs*sizeof(float));
     float* doutput; cudaMalloc((void**)&doutput, n_outputs*sizeof(float));
 
+    size_t n_nodes = n_outputs;
+    init<<<1, n_nodes>>>(time(NULL));
+
     printf("training\n");
     mnist_t mnist;
     mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
@@ -93,7 +107,7 @@ int main()
 
         cudaMemcpy(dinputs, hinputs,  n_inputs*sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(dexpect, hexpect, n_outputs*sizeof(float), cudaMemcpyHostToDevice);
-        do_train<<<1, n_outputs>>>(dinputs, dexpect);
+        do_train<<<1, n_nodes>>>(dinputs, dexpect);
     }
     mnist_exit(&mnist);
 
@@ -105,7 +119,7 @@ int main()
     {
         import_case(&mnist, hinputs, hexpect);
         cudaMemcpy(dinputs, hinputs,  n_inputs*sizeof(float), cudaMemcpyHostToDevice);
-        do_compute<<<1, n_outputs>>>(dinputs, doutput);
+        do_compute<<<1, n_nodes>>>(dinputs, doutput);
         cudaMemcpy(houtput, doutput, n_outputs*sizeof(float), cudaMemcpyDeviceToHost);
 
         // retrieve original label
