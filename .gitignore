@@ -1,4 +1,5 @@
 .*.swp
 *.o
 neural
+cuda
 mnist/*ubyte
