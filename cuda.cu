@@ -6,12 +6,13 @@ extern "C"
 }
 
 #define n_inputs (28*28)
+#define n_outputs (10)
 
-__device__ float weights[n_inputs+1];
+__device__ float weights[n_outputs][n_inputs+1];
 
 __device__ float sigmoid(float x)
 {
-    return 1.f / (1.f + expf(-x));
+    return 1.f / (1.f + expf(-0.007f * x));
 }
 
 __device__ float sigmoid_prime(float x)
@@ -25,9 +26,9 @@ __device__ void compute(float* inputs, float* outputs)
     const int i = threadIdx.x;
 
     // compute local field, v_i = sum(y_j w_ji)
-    float local_field = weights[n_inputs];
+    float local_field = weights[i][n_inputs];
     for (size_t j = 0; j < n_inputs; j++)
-        local_field += inputs[j] * weights[j];
+        local_field += inputs[j] * weights[i][j];
 
     // compute outputs, y_i = ϕ(v_i)
     outputs[i] = sigmoid(local_field);
@@ -37,14 +38,14 @@ __device__ void train(float* inputs, float* expect)
 {
     const int i = threadIdx.x;
 
-    float outputs[1];
+    float outputs[n_outputs];
     compute(inputs, outputs);
     float local_gradient = outputs[i] - expect[i];
 
     // update weights
-    weights[n_inputs] -= local_gradient;
+    weights[i][n_inputs] -= local_gradient;
     for (size_t j = 0; j < n_inputs; j++)
-        weights[j] -= local_gradient * inputs[j];
+        weights[i][j] -= local_gradient * inputs[j];
 }
 
 __global__ void do_compute(float* inputs, float* outputs)
@@ -68,46 +69,109 @@ void import_case(mnist_t* mnist, float* input, float* expect)
         input[i] = image[i] / 256.f;
 
     // set expected output
-    expect[0] = (float)(label == 0);
+    for (size_t i = 0; i < n_outputs; i++)
+        expect[i] = 0.f;
+    expect[label] = 1.f;
 }
 
 int main()
 {
-
     float hinputs[n_inputs];
-    float hexpect[1];
-    float houtput[1];
+    float hexpect[n_outputs];
+    float houtput[n_outputs];
 
-    float* dinputs; cudaMalloc((void**)&dinputs, n_inputs*sizeof(float));
-    float* dexpect; cudaMalloc((void**)&dexpect,        1*sizeof(float));
-    float* doutput; cudaMalloc((void**)&doutput,        1*sizeof(float));
+    float* dinputs; cudaMalloc((void**)&dinputs,  n_inputs*sizeof(float));
+    float* dexpect; cudaMalloc((void**)&dexpect, n_outputs*sizeof(float));
+    float* doutput; cudaMalloc((void**)&doutput, n_outputs*sizeof(float));
 
+    printf("training\n");
     mnist_t mnist;
     mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
     for (int i = 0; i < mnist.n_elements; i++)
     {
         import_case(&mnist, hinputs, hexpect);
 
-        cudaMemcpy(dinputs, hinputs, n_inputs*sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(dexpect, hexpect,        1*sizeof(float), cudaMemcpyHostToDevice);
-        do_train<<<1, 1>>>(dinputs, dexpect);
+        cudaMemcpy(dinputs, hinputs,  n_inputs*sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(dexpect, hexpect, n_outputs*sizeof(float), cudaMemcpyHostToDevice);
+        do_train<<<1, n_outputs>>>(dinputs, dexpect);
     }
     mnist_exit(&mnist);
 
+    printf("testing\n");
     mnist_init(&mnist, "mnist/t10k-labels-idx1-ubyte", "mnist/t10k-images-idx3-ubyte");
-    size_t correct = 0;
+    size_t classifications[n_outputs][n_outputs] = {{0}};
+
     for (int i = 0; i < mnist.n_elements; i++)
     {
         import_case(&mnist, hinputs, hexpect);
-        cudaMemcpy(dinputs, hinputs, n_inputs*sizeof(float), cudaMemcpyHostToDevice);
-        do_compute<<<1, 1>>>(dinputs, doutput);
-        cudaMemcpy(houtput, doutput,        1*sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(dinputs, hinputs,  n_inputs*sizeof(float), cudaMemcpyHostToDevice);
+        do_compute<<<1, n_outputs>>>(dinputs, doutput);
+        cudaMemcpy(houtput, doutput, n_outputs*sizeof(float), cudaMemcpyDeviceToHost);
 
-        if ((hexpect[0] > 0.5f) == (houtput[0] > 0.5f))
-            correct++;
+        // retrieve original label
+        int label = 0;
+        for (; hexpect[label] != 1.f; label++);
+
+        // get result
+        float best = 0;
+        int selected = 0;
+        for (size_t i = 0; i < n_outputs; i++)
+        {
+            if (houtput[i] > best)
+            {
+                best = houtput[i];
+                selected = i;
+            }
+        }
+
+        // log classification
+        classifications[label][selected]++;
     }
-    printf("%zu / %zu\n", correct, mnist.n_elements);
-    mnist_exit(&mnist);
+
+    // table header
+    printf("    ");
+    for (size_t j = 0; j < n_outputs; j++)
+        printf("%4zu ", j);
+    printf(" total\n");
+    printf("\n");
+
+    for (size_t i = 0; i < n_outputs; i++)
+    {
+        size_t total = 0;
+        printf("%zu   ", i);
+        for (size_t j = 0; j < n_outputs; j++)
+        {
+            printf("%4zu ", classifications[i][j]);
+            total += classifications[i][j];
+        }
+        printf("  %4zu\n", total);
+    }
+
+    printf("\n");
+    printf("tot ");
+    for (size_t j = 0; j < n_outputs; j++)
+    {
+        size_t total = 0;
+        for (size_t i = 0; i < n_outputs; i++)
+            total += classifications[i][j];
+        printf("%4zu ", total);
+    }
+    printf("\n");
+
+    printf("\n");
+    printf("Caption: image with digit LINE was classified as a COLUMN digit CELL times\n");
+
+    printf("\n");
+    size_t correct = 0;
+    size_t total = 0;
+    for (size_t i = 0; i < n_outputs; i++)
+    {
+        for (size_t j = 0; j < n_outputs; j++)
+            total += classifications[i][j];
+        correct += classifications[i][i];
+    }
+    printf("%zu / %zu → %5.2f\n", correct, total, 100.f*correct/(float)total);
+
 
     cudaFree(doutput);
     cudaFree(dexpect);
