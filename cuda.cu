@@ -1,6 +1,11 @@
 #include <stdio.h>
 
-#define n_inputs 2
+extern "C"
+{
+#include "mnist.h"
+}
+
+#define n_inputs (28*28)
 
 __device__ float weights[n_inputs+1];
 
@@ -52,38 +57,59 @@ __global__ void do_train(float* inputs, float* outputs)
     train(inputs, outputs);
 }
 
+void import_case(mnist_t* mnist, float* input, float* expect)
+{
+    // get data
+    unsigned char image[mnist->n_pixels];
+    unsigned int label = mnist_next(mnist, image);
+
+    // set input
+    for (size_t i = 0; i < mnist->n_pixels; i++)
+        input[i] = image[i] / 256.f;
+
+    // set expected output
+    expect[0] = (float)(label == 0);
+}
+
 int main()
 {
-    float hinputs[n_inputs], hexpect[1];
+
+    float hinputs[n_inputs];
+    float hexpect[1];
+    float houtput[1];
 
     float* dinputs; cudaMalloc((void**)&dinputs, n_inputs*sizeof(float));
     float* dexpect; cudaMalloc((void**)&dexpect,        1*sizeof(float));
+    float* doutput; cudaMalloc((void**)&doutput,        1*sizeof(float));
 
-    for (int i = 0; i < 200; i++)
+    mnist_t mnist;
+    mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
+    for (int i = 0; i < mnist.n_elements; i++)
     {
-        int a = rand() & 1;
-        int b = rand() & 1;
-        hinputs[0] = a;
-        hinputs[1] = b;
-        hexpect[0] = a | b;
+        import_case(&mnist, hinputs, hexpect);
 
         cudaMemcpy(dinputs, hinputs, n_inputs*sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(dexpect, hexpect,        1*sizeof(float), cudaMemcpyHostToDevice);
         do_train<<<1, 1>>>(dinputs, dexpect);
     }
+    mnist_exit(&mnist);
 
-    for (int a = 0; a <= 1; a++)
-        for (int b = 0; b <= 1; b++)
-        {
-            hinputs[0] = a;
-            hinputs[1] = b;
-            cudaMemcpy(dinputs, hinputs, n_inputs*sizeof(float), cudaMemcpyHostToDevice);
-            do_compute<<<1, 1>>>(dinputs, dexpect);
-            cudaMemcpy(hexpect, dexpect,        1*sizeof(float), cudaMemcpyDeviceToHost);
+    mnist_init(&mnist, "mnist/t10k-labels-idx1-ubyte", "mnist/t10k-images-idx3-ubyte");
+    size_t correct = 0;
+    for (int i = 0; i < mnist.n_elements; i++)
+    {
+        import_case(&mnist, hinputs, hexpect);
+        cudaMemcpy(dinputs, hinputs, n_inputs*sizeof(float), cudaMemcpyHostToDevice);
+        do_compute<<<1, 1>>>(dinputs, doutput);
+        cudaMemcpy(houtput, doutput,        1*sizeof(float), cudaMemcpyDeviceToHost);
 
-            printf("%i %i %f\n", a, b, hexpect[0]);
-        }
+        if ((hexpect[0] > 0.5f) == (houtput[0] > 0.5f))
+            correct++;
+    }
+    printf("%zu / %zu\n", correct, mnist.n_elements);
+    mnist_exit(&mnist);
 
+    cudaFree(doutput);
     cudaFree(dexpect);
     cudaFree(dinputs);
     return 0;
