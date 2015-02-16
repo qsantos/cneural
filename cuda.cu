@@ -8,7 +8,7 @@ extern "C"
 #define n_inputs (28*28)
 #define n_outputs (10)
 
-__device__ float weights[n_outputs][n_inputs+1];
+__shared__ float weights[n_outputs][n_inputs+1];
 
 __device__ float sigmoid(float x)
 {
@@ -38,7 +38,7 @@ __device__ void train(float* inputs, float* expect)
 {
     const int i = threadIdx.x;
 
-    float outputs[n_outputs];
+    __shared__ float outputs[n_outputs];
     compute(inputs, outputs);
     float local_gradient = outputs[i] - expect[i];
 
