@@ -11,7 +11,7 @@ extern "C"
 #define n_hidden (300)
 #define n_outputs (10)
 
-__device__ float weights0[n_hidden] [n_inputs+1];
+__device__ float weights0[n_inputs+1][n_hidden]; // inverted indices (striding)
 __shared__ float weights1[n_outputs][n_hidden+1];
 __shared__ float local_fields[n_hidden];
 __shared__ float intermediates[n_hidden];
@@ -34,9 +34,9 @@ __device__ void compute(float* inputs, float* outputs)
     if (i < n_hidden)
     {
         // compute local field, v_i = sum(y_j w_ji)
-        float local_field = weights0[i][n_inputs];
+        float local_field = weights0[n_inputs][i];
         for (size_t j = 0; j < n_inputs; j++)
-            local_field += inputs[j] * weights0[i][j];
+            local_field += inputs[j] * weights0[j][i];
         local_fields[i] = local_field;
 
         // compute outputs, y_i = ϕ(v_i)
@@ -83,9 +83,9 @@ __device__ void train(float* inputs, float* expect)
         local_gradient *= sigmoid_prime(local_fields[i]);
 
         // update weights
-        weights0[i][n_inputs] -= local_gradient;
+        weights0[n_inputs][i] -= local_gradient;
         for (size_t j = 0; j < n_inputs; j++)
-            weights0[i][j] -= local_gradient * inputs[j];
+            weights0[j][i] -= local_gradient * inputs[j];
     }
 }
 
@@ -97,7 +97,7 @@ __global__ void init(int seed)
     if (i < n_hidden)
     {
         for (size_t j = 0; j < n_inputs; j++)
-            weights0[i][j] = 2.f * curand_uniform(&state) - 1.f;
+            weights0[j][i] = 2.f * curand_uniform(&state) - 1.f;
     }
     if (i < n_outputs)
     {
