@@ -43,6 +43,8 @@ __device__ void compute(float* inputs, float* outputs)
         intermediates[i] = sigmoid(local_field);
     }
 
+    __syncthreads();
+
     if (i < n_outputs)
     {
         // compute local field, v_i = sum(y_j w_ji)
@@ -53,6 +55,8 @@ __device__ void compute(float* inputs, float* outputs)
         // compute outputs, y_i = ϕ(v_i)
         outputs[i] = sigmoid(local_field);
     }
+
+    __syncthreads();
 }
 
 __device__ void train(float* inputs, float* expect)
@@ -71,6 +75,8 @@ __device__ void train(float* inputs, float* expect)
             weights1[i][j] -= local_gradient * intermediates[j];
     }
 
+    __syncthreads();
+
     if (i < n_hidden)
     {
         // compute local gradient, δ_i = ϕ'(v_i) × ∑ δ_j w_ji
@@ -87,6 +93,8 @@ __device__ void train(float* inputs, float* expect)
         for (size_t j = 0; j < n_inputs; j++)
             weights0[j][i] -= local_gradient * inputs[j];
     }
+
+    __syncthreads();
 }
 
 __global__ void init(int seed)
@@ -104,6 +112,8 @@ __global__ void init(int seed)
         for (size_t j = 0; j < n_hidden; j++)
             weights1[i][j] = 2.f * curand_uniform(&state) - 1.f;
     }
+
+    __syncthreads();
 }
 
 __global__ void do_compute(float* inputs, float* outputs)
