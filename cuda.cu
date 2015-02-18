@@ -24,7 +24,7 @@ __device__ float sigmoid(float x)
 __device__ float sigmoid_prime(float x)
 {
     float s = sigmoid(x);
-    return (1 - s) * s;
+    return (1.f - s) * s;
 }
 
 __device__ void compute(float* inputs, float* outputs)

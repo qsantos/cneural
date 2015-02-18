@@ -91,7 +91,7 @@ int main()
         for (; expect[label] != 1.f; label++);
 
         // get result
-        float best = 0;
+        float best = 0.f;
         int selected = 0;
         for (size_t i = 0; i < N_OUTPUTS; i++)
         {

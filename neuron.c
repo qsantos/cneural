@@ -28,7 +28,7 @@ static float sigmoid(float x)
 static float sigmoid_prime(float x)
 {
     float s = sigmoid(x);
-    return (1 - s) * s;
+    return (1.f - s) * s;
 }
 
 void neuron_propagate(neuron_t* neurons, size_t i)
@@ -36,7 +36,7 @@ void neuron_propagate(neuron_t* neurons, size_t i)
     neuron_t* neuron = &neurons[i];
 
     // compute local field, v_i = sum(y_j w_ji)
-    float local_field = 0;
+    float local_field = 0.f;
     for (size_t j = 0; j < neuron->n_synapses; j++)
     {
         synapse_t* s = &neuron->synapses[j];
@@ -48,7 +48,7 @@ void neuron_propagate(neuron_t* neurons, size_t i)
     float output = sigmoid(local_field);
     neuron->output = output;
 
-    neuron->local_gradient = 0;
+    neuron->local_gradient = 0.f;
 }
 
 void neuron_backpropagate(neuron_t* neurons, size_t i, float learning_rate)
