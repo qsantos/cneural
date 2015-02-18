@@ -8,7 +8,7 @@ extern "C"
 }
 
 #define n_inputs (28*28)
-#define n_hidden (300)
+#define n_hidden (1008)
 #define n_outputs (10)
 
 __device__ float weights0[n_inputs+1][n_hidden]; // inverted indices (striding)
@@ -18,7 +18,7 @@ __shared__ float intermediates[n_hidden];
 
 __device__ float sigmoid(float x)
 {
-    return 1.f / (1.f + expf(-0.007f * x));
+    return 1.f / (1.f + expf(-0.005f * x));
 }
 
 __device__ float sigmoid_prime(float x)
