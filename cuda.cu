@@ -156,19 +156,24 @@ int main()
     init<<<1, n_nodes>>>(time(NULL));
 
     printf("training\n");
-    mnist_t mnist;
-    mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
-    for (int i = 0; i < mnist.n_elements; i++)
+    size_t n_iterations = 20;
+    for (size_t k = 0; k < n_iterations; k++)
     {
-        import_case(&mnist, hinputs, hexpect);
+        mnist_t mnist;
+        mnist_init(&mnist, "mnist/train-labels-idx1-ubyte", "mnist/train-images-idx3-ubyte");
+        for (int i = 0; i < mnist.n_elements; i++)
+        {
+            import_case(&mnist, hinputs, hexpect);
 
-        cudaMemcpy(dinputs, hinputs,  n_inputs*sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(dexpect, hexpect, n_outputs*sizeof(float), cudaMemcpyHostToDevice);
-        do_train<<<1, n_nodes>>>(dinputs, dexpect);
+            cudaMemcpy(dinputs, hinputs,  n_inputs*sizeof(float), cudaMemcpyHostToDevice);
+            cudaMemcpy(dexpect, hexpect, n_outputs*sizeof(float), cudaMemcpyHostToDevice);
+            do_train<<<1, n_nodes>>>(dinputs, dexpect);
+        }
+        mnist_exit(&mnist);
     }
-    mnist_exit(&mnist);
 
     printf("testing\n");
+    mnist_t mnist;
     mnist_init(&mnist, "mnist/t10k-labels-idx1-ubyte", "mnist/t10k-images-idx3-ubyte");
     size_t classifications[n_outputs][n_outputs] = {{0}};
 
@@ -198,6 +203,7 @@ int main()
         // log classification
         classifications[label][selected]++;
     }
+    mnist_exit(&mnist);
 
     // table header
     printf("    ");
