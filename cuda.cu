@@ -16,15 +16,17 @@ __shared__ float weights1[n_outputs][n_hidden+1];
 __shared__ float local_fields[n_hidden];
 __shared__ float intermediates[n_hidden];
 
+__device__ const float S = 0.0006f;
+
 __device__ float sigmoid(float x)
 {
-    return 1.f / (1.f + expf(-0.005f * x));
+    return (1.f + tanhf(S * x)) / 2.f;
 }
 
 __device__ float sigmoid_prime(float x)
 {
-    float s = sigmoid(x);
-    return (1.f - s) * s;
+    float t = tanhf(S * x);
+    return (1 - t*t) / 2.f;
 }
 
 __device__ void compute(float* inputs, float* outputs)
